@@ -71,7 +71,7 @@ git clone git@github.com:Samanta00/taskflow.git
 Acesse a pasta:
 
 ```bash
-cd taskflow-next-trpc
+cd taskflow
 ```
 
 Instale as dependências:
