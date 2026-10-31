@@ -2,19 +2,48 @@ import { z } from "zod";
 import { publicProcedure, router } from "./trpc";
 import { nextTaskId, taskStore } from "./task-store";
 
+const tituloSchema = z
+  .string()
+  .trim()
+  .min(1, "O título é obrigatório.")
+  .refine(
+    (value) => /\p{L}/u.test(value),
+    "O título deve conter pelo menos uma letra.",
+  );
+
 const taskSchema = z.object({
-  titulo: z.string().trim().min(1, "O título é obrigatório."),
+  titulo: tituloSchema,
   descricao: z.string().optional(),
 });
 
 export const taskRouter = router({
-  list: publicProcedure.query(() => {
-    return [...taskStore].sort(
-      (a, b) =>
-        new Date(b.dataCriacao).getTime() -
-        new Date(a.dataCriacao).getTime(),
-    );
-  }),
+  list: publicProcedure
+    .input(
+        z.object({
+        limit: z.number().min(1).max(20).default(5),
+        cursor: z.number().nullish(),
+        }),
+    )
+    .query(({ input }) => {
+        const tasks = [...taskStore].sort(
+        (a, b) =>
+            new Date(b.dataCriacao).getTime() -
+            new Date(a.dataCriacao).getTime(),
+        );
+
+        const startIndex = input.cursor ?? 0;
+        const items = tasks.slice(startIndex, startIndex + input.limit);
+
+        const nextCursor =
+        startIndex + input.limit < tasks.length
+            ? startIndex + input.limit
+            : null;
+
+        return {
+        items,
+        nextCursor,
+        };
+    }),
 
   byId: publicProcedure
     .input(z.object({ id: z.number() }))

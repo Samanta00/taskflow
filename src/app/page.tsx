@@ -4,7 +4,10 @@ import { taskRouter } from "@/server/task-router";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const initialTasks = await taskRouter.createCaller({}).list();
+  const initialPage = await taskRouter.createCaller({}).list({
+    limit: 5,
+    cursor: null,
+  });
 
-  return <TaskManager initialTasks={initialTasks} />;
+  return <TaskManager initialPage={initialPage} />;
 }

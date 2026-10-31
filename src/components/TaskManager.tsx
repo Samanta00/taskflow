@@ -1,20 +1,54 @@
+
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Task } from "@/server/task-store";
 import { trpc } from "@/lib/trpc";
 
-export function TaskManager({ initialTasks }: { initialTasks: Task[] }) {
+type InitialPage = {
+  items: Task[];
+  nextCursor: number | null;
+};
+
+function getErrorMessage(error: { message: string }) {
+  try {
+    const parsed = JSON.parse(error.message);
+
+    if (Array.isArray(parsed) && parsed[0]?.message) {
+      return parsed[0].message;
+    }
+  } catch {
+    // A mensagem já está em formato de texto.
+  }
+
+  return error.message;
+}
+
+export function TaskManager({
+  initialPage,
+}: {
+  initialPage: InitialPage;
+}) {
   const utils = trpc.useUtils();
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState("");
 
-  const tasks = trpc.tasks.list.useQuery(undefined, {
-    initialData: initialTasks,
-  });
+  const tasks = trpc.tasks.list.useInfiniteQuery(
+    { limit: 5 },
+    {
+      initialData: {
+        pages: [initialPage],
+        pageParams: [null],
+      },
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    },
+  );
+
+  const allTasks = tasks.data?.pages.flatMap((page) => page.items) ?? [];
 
   const createTask = trpc.tasks.create.useMutation({
     onSuccess: async () => {
@@ -22,7 +56,7 @@ export function TaskManager({ initialTasks }: { initialTasks: Task[] }) {
       resetForm();
       setFeedback("Tarefa criada com sucesso!");
     },
-    onError: (error) => setFeedback(error.message),
+    onError: (error) => setFeedback(getErrorMessage(error)),
   });
 
   const updateTask = trpc.tasks.update.useMutation({
@@ -31,7 +65,7 @@ export function TaskManager({ initialTasks }: { initialTasks: Task[] }) {
       resetForm();
       setFeedback("Tarefa atualizada com sucesso!");
     },
-    onError: (error) => setFeedback(error.message),
+    onError: (error) => setFeedback(getErrorMessage(error)),
   });
 
   const deleteTask = trpc.tasks.delete.useMutation({
@@ -39,7 +73,7 @@ export function TaskManager({ initialTasks }: { initialTasks: Task[] }) {
       await utils.tasks.list.invalidate();
       setFeedback("Tarefa excluída com sucesso!");
     },
-    onError: (error) => setFeedback(error.message),
+    onError: (error) => setFeedback(getErrorMessage(error)),
   });
 
   function resetForm() {
@@ -77,6 +111,35 @@ export function TaskManager({ initialTasks }: { initialTasks: Task[] }) {
     setDescricao(task.descricao ?? "");
     setFeedback("");
   }
+
+  useEffect(() => {
+    const element = sentinelRef.current;
+
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          tasks.hasNextPage &&
+          !tasks.isFetchingNextPage
+        ) {
+          void tasks.fetchNextPage();
+        }
+      },
+      {
+        rootMargin: "200px",
+      },
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [
+    tasks.hasNextPage,
+    tasks.isFetchingNextPage,
+    tasks.fetchNextPage,
+  ]);
 
   const isSaving = createTask.isPending || updateTask.isPending;
 
@@ -121,20 +184,28 @@ export function TaskManager({ initialTasks }: { initialTasks: Task[] }) {
             </button>
 
             {editingId !== null && (
-              <button type="button" className="secondary" onClick={resetForm}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={resetForm}
+              >
                 Cancelar
               </button>
             )}
           </div>
         </form>
 
-        {feedback && <p role="status" className="feedback">{feedback}</p>}
+        {feedback && (
+          <p role="status" className="feedback">
+            {feedback}
+          </p>
+        )}
       </section>
 
       <section className="taskSection">
         <div className="sectionHeader">
           <h2>Minhas tarefas</h2>
-          <span>{tasks.data?.length ?? 0} tarefas</span>
+          <span>{allTasks.length} tarefas carregadas</span>
         </div>
 
         {tasks.isLoading && <p>Carregando tarefas...</p>}
@@ -143,18 +214,23 @@ export function TaskManager({ initialTasks }: { initialTasks: Task[] }) {
           <p role="alert">Não foi possível carregar as tarefas.</p>
         )}
 
-        {tasks.data?.length === 0 && (
-          <p className="empty">Nenhuma tarefa cadastrada. Comece adicionando uma!</p>
+        {allTasks.length === 0 && !tasks.isLoading && (
+          <p className="empty">
+            Nenhuma tarefa cadastrada. Comece adicionando uma!
+          </p>
         )}
 
         <div className="taskList">
-          {tasks.data?.map((task) => (
+          {allTasks.map((task) => (
             <article className="taskCard" key={task.id}>
               <div>
                 <h3>{task.titulo}</h3>
+
                 {task.descricao && <p>{task.descricao}</p>}
+
                 <time dateTime={task.dataCriacao}>
-                  Criada em {new Date(task.dataCriacao).toLocaleString("pt-BR")}
+                  Criada em{" "}
+                  {new Date(task.dataCriacao).toLocaleString("pt-BR")}
                 </time>
               </div>
 
@@ -183,6 +259,29 @@ export function TaskManager({ initialTasks }: { initialTasks: Task[] }) {
             </article>
           ))}
         </div>
+
+        <div ref={sentinelRef} aria-hidden="true" />
+
+        {tasks.isFetchingNextPage && (
+          <p className="empty">Carregando mais tarefas...</p>
+        )}
+
+        {tasks.isFetchNextPageError && (
+          <p role="alert">
+            Não foi possível carregar mais tarefas.
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => void tasks.fetchNextPage()}
+            >
+              Tentar novamente
+            </button>
+          </p>
+        )}
+
+        {!tasks.hasNextPage && allTasks.length > 0 && (
+          <p className="empty">Você chegou ao final da lista.</p>
+        )}
       </section>
     </main>
   );
