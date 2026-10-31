@@ -1,0 +1,171 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f5f6fa;
+  color: #202333;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.container {
+  width: min(850px, 92%);
+  margin: 55px auto;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.eyebrow {
+  color: #6658d3;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.header h1 {
+  margin: 8px 0;
+  font-size: 42px;
+}
+
+.header p,
+.taskCard p {
+  color: #737789;
+}
+
+.panel,
+.taskCard {
+  background: white;
+  border: 1px solid #e8e9ef;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.panel h2,
+.taskSection h2 {
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+label {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid #dfe1e9;
+  border-radius: 7px;
+  padding: 12px;
+  outline: none;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #6658d3;
+}
+
+button {
+  border: 0;
+  border-radius: 7px;
+  background: #6658d3;
+  color: white;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.formActions,
+.taskActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.secondary {
+  background: #ececf3;
+  color: #39394b;
+}
+
+.danger {
+  background: #dc4c59;
+}
+
+.feedback {
+  margin-bottom: 0;
+  color: #27754b;
+  font-size: 14px;
+}
+
+.taskSection {
+  margin-top: 35px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sectionHeader span,
+.taskCard time {
+  color: #85899a;
+  font-size: 13px;
+}
+
+.taskList {
+  display: grid;
+  gap: 12px;
+}
+
+.taskCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.taskCard h3 {
+  margin: 0;
+}
+
+.taskCard p {
+  margin: 8px 0;
+}
+
+.empty {
+  padding: 25px;
+  text-align: center;
+  color: #737789;
+  background: white;
+  border-radius: 10px;
+}
+
+@media (max-width: 600px) {
+  .container {
+    margin: 30px auto;
+  }
+
+  .taskCard {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
