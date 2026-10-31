@@ -65,7 +65,7 @@ src/
 Clone o repositório:
 
 ```bash
-git clone git@github.com:Samanta00/taskflow-next-trpc.git
+git clone git@github.com:Samanta00/taskflow.git
 ```
 
 Acesse a pasta:
