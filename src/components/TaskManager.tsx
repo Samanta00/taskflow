@@ -50,6 +50,12 @@ export function TaskManager({
 
   const allTasks = tasks.data?.pages.flatMap((page) => page.items) ?? [];
 
+  const {
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = tasks;
+
   const createTask = trpc.tasks.create.useMutation({
     onSuccess: async () => {
       await utils.tasks.list.invalidate();
@@ -91,6 +97,11 @@ export function TaskManager({
       return;
     }
 
+    if (!/\p{L}/u.test(titulo.trim())) {
+      setFeedback("O título deve conter pelo menos uma letra.");
+      return;
+    }
+
     if (editingId !== null) {
       updateTask.mutate({
         id: editingId,
@@ -121,10 +132,10 @@ export function TaskManager({
       (entries) => {
         if (
           entries[0].isIntersecting &&
-          tasks.hasNextPage &&
-          !tasks.isFetchingNextPage
+          hasNextPage &&
+          !isFetchingNextPage
         ) {
-          void tasks.fetchNextPage();
+          void fetchNextPage();
         }
       },
       {
@@ -135,11 +146,7 @@ export function TaskManager({
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, [
-    tasks.hasNextPage,
-    tasks.isFetchingNextPage,
-    tasks.fetchNextPage,
-  ]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const isSaving = createTask.isPending || updateTask.isPending;
 
